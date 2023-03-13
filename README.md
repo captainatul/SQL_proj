@@ -36,14 +36,6 @@ The course curriculum is broken down into eight weeks, each with its own set of 
 
 Each week's challenges and projects are designed to help you practice what you've learned and build on your skills.
 
-## Getting Help
-
-If you have any questions or need help with the course, you can refer to the following resources:
-
-- Danny Ma 8-Week SQL Challenge website
-- Course forums and discussion boards
-- Online documentation and tutorials for your chosen SQL database management system
-- Stack Overflow and other programming communities
 
 ## Contributing
 
