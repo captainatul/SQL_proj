@@ -199,8 +199,105 @@ with cte as (
 | A | sushi  |
 | B | curry  |
 | C | ramen  |
+
+### 4 What is the most purchased item on the menu and how many times was it purchased by all customers?
+```sql
+
+ select top 1 product_id , COUNT(product_id) as times_purchased from sales
+ group by product_id 
+ order by product_id desc 
+ ```
+ Output
+| product_id    | times_purchased   |
+| :---:   | :---: |
+| 3 | 8  | 
+
+
+### 5 Which item was the most popular for each customer?
+
+```sql
+with cte as (
+ select s.customer_id, m.product_name , COUNT(m.product_id) as fav_items ,
+ DENSE_RANK() over (partition by customer_id order by count(m.product_id)) as dr 
+ from menu m  join sales s on m.product_id = s.product_id
+GROUP BY s.customer_id, m.product_name
+ )
+ select customer_id,product_name from cte 
+ where dr=1
+ ```
+ Output
+| customer_id    | product_name   |
+| :---:   | :---: |
+| A | ramen  |  
+| B | curry  |
+| B | sushi  |
+| B | ramen  |
+| C | ramen  |
+
+### 6 Which item was purchased first by the customer after they became a member?
+ ```sql
+  with max_order as (
+  select m.join_date,s.*,ROW_NUMBER()over(partition by s.customer_id order by order_date)  as rn
+  from members m left join sales s on  s.order_date >= m.join_date and s.customer_id=m.customer_id ) 
+  select customer_id,product_id from max_order 
+  where rn = 1	
+ ```
+ Output
+ | customer_id    | product_id   |
+| :---:   | :---: |
+| A | 2  |  
+| B | 1  |
  
-  
-  
-  
-  
+ ### 7 Which item was purchased just before the customer became a member?
+
+```sql
+  with just_before as (
+  select m.join_date,s.*,dense_rank()over(partition by s.customer_id order by order_date desc)  as rn
+  from members m left join sales s on   s.customer_id=m.customer_id  where s.order_date < m.join_date ) 
+  select customer_id,product_id from just_before 
+  where rn = 1	
+ ``` 
+  Output
+   | customer_id | product_id |
+   | :---: | :---|
+   | A | 1 | 
+   | A | 2 | 
+   | B | 1 |
+   
+   
+   ### 8 What is the total items and amount spent for each member before they became a member?
+```sql
+  with total_items as (
+		select  m.join_date,s.*
+  from members m left join sales s on   s.customer_id=m.customer_id  where s.order_date < m.join_date ) ,
+  rate as (
+  select t.customer_id,   u.product_name, sum(u.price) as amount_spend from total_items t left join menu u on t.product_id=u.product_id 
+  group by t.customer_id, u.product_name)
+
+  select customer_id,COUNT(distinct product_name) as no_of_items ,sum(amount_spend) as total_amount_spend from rate
+  group by customer_id
+   ```
+   Output
+| customer_id    | no_of_items  | total_amount_spend   |
+| :---:   | :---: | :---: | 
+| A | 2  | 25  |  
+| B | 2  | 40  | 
+   
+  ### 9 If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+``` sql 
+  with cte as (
+  select customer_id ,m.product_name, m.price , case when m.product_name = 'sushi' then 2*10*price else 10*price end as reward_point
+  from sales s join  menu m on s.product_id=m.product_id )
+
+  select customer_id , SUM(reward_point) as total_points from cte 
+  group by customer_id 
+  ```
+ Output
+ Output
+| customer_id    | total_points   |
+| :---:   | :---: |
+| A | 860  |  
+| A | 940  |  
+| B | 360  |
+
+### 10 
