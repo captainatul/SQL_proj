@@ -1,97 +1,5 @@
-# Danny's Diner Restaurent
-
-## Introduction
-Danny seriously loves Japanese food so in the beginning of 2021, he decides to embark upon a risky venture and opens up a cute little restaurant that sells his 3 favourite foods: sushi, curry and ramen.
-Danny’s Diner is in need of your assistance to help the restaurant stay afloat - the restaurant has captured some very basic data from their few months of operation but have no idea how to use their data to help them run the business.
-***
-
-## Problem Statement
-* Danny wants to use the data to answer a few simple questions about his customers, especially about their visiting patterns, how much money they’ve spent and also which menu items are their favourite. Having this deeper connection with his customers will help him deliver a better and more personalised experience for his loyal customers.
-
-* He plans on using these insights to help him decide whether he should expand the existing customer loyalty program - additionally he needs help to generate some basic datasets so his team can easily inspect the data without needing to use SQL.
-
-* Danny has provided you with a sample of his overall customer data due to privacy issues - but he hopes that these examples are enough for you to write fully functioning SQL queries to help him answer his questions!
-***
-
-# 📁 DATASETS
-Danny has shared with you 3 key datasets for this case study:
-
-1. SALES
-<details>
-  <summary>View Table</summary>
-	The sales table captures all customer_id level purchases with an corresponding order_date and product_id information for when and what menu items were ordered.
-	| customer_id	| order_date |	product_id |
-	| --- 	| ---  | --- |
-	| A |	2021-01-01 |	1 |
-	| A |	2021-01-01 |	2 |
-	| A |	2021-01-07 |	2 |
-	| A |	2021-01-10 |	3 |
-	| A |	2021-01-11 |	3 |
-	| A |	2021-01-11 |	3 |
-	| B |	2021-01-01 |	2 |
-	| B |	2021-01-02 |	2 |
-	| B |	2021-01-04 |	1 |
-	| B |	2021-01-11 |	1 |
-	| B |	2021-01-16 |	3 |
-	| B |	2021-02-01 |	3 |
-	| C |	2021-01-01 |	3 |
-	| C |   2021-01-01 |	3 |
-	| C |   2021-01-07 |	3 |
-</details>
-
-2. MENU
-<details>
-  <summary>View Table</summary>
-	The menu table maps the product_id to the actual product_name and price of each menu item.
-	| product_id	| product_name |	price |
-	| --- 	| ---  | --- |
-	| 1 |	price |	10 |
-	| 2 |	curry |	15 |
-	| 3 |	ramen |	12 |
-	
-</details>
-
-
-3. MEMBERS
-<details>
-  <summary>View Table</summary>
-	The final members table captures the join_date when a customer_id joined the beta version of the Danny’s Diner loyalty program.
-	| customer_id	| join_date |
-	| --- 	| ---  |
-	| A |	2021-01-07 |
-	| B |	2021-01-09 |
-	
-</details>
-# 💬 CASE STUDY QUESTIONS
-* What is the total amount each customer spent at the restaurant?
-* How many days has each customer visited the restaurant?
-* What was the first item from the menu purchased by each customer?
-* What is the most purchased item on the menu and how many times was it purchased by all customers?
-* Which item was the most popular for each customer?
-* Which item was purchased first by the customer after they became a member?
-* Which item was purchased just before the customer became a member?
-* What is the total items and amount spent for each member before they became a member?
-* If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-* In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-
-# 🎯 INSIGHTS GENERATED
-* Ramen was the most favorite dish/ ordered item by all the customers with ordered 8 times.
-* Customer with Id 'A' ordered the most while Customer with ID 'B' spent the least amount
-* Customer with Id 'B' visited more in the restaurant i.e., 6 times.
-
-
-
-# Detailed Analysis with MySQL Query
-
-### Danny has shared with you 3 key datasets for this case study:
-
-* sales
-* menu
-* members
-
-```SQL
-CREATE SCHEMA dannys_diner;
-USE dannys_diner;
+create schema db
+use db 
 drop table  sales
 CREATE TABLE sales (
   "customer_id" VARCHAR(1),
@@ -143,4 +51,121 @@ INSERT INTO members
 VALUES
   ('A', '2021-01-07'),
   ('B', '2021-01-09');
-```
+
+  select * from sales
+  select * from menu
+  select * from members
+
+
+ -- 1. What is the total amount each customer spent at the restaurant?
+
+ SELECT s.customer_id , SUM(price) as total_amount_spend 
+ from sales s join menu m on s.product_id=m.product_id
+ group by s.customer_id
+
+ -- 2. How many days has each customer visited the restaurant?
+
+ select customer_id , COUNT(distinct order_date) AS no_of_distinct_days FROM sales 
+ group by customer_id
+
+ -- 3. What was the first item from the menu purchased by each customer?
+ 
+ with cte as ( 
+ select * , dense_rank () over (PARTITION by customer_id order by order_date) as dr from sales ) 
+
+ select c.customer_id , m.product_name from cte c left join menu m on c.product_id = m.product_id
+ where dr = 1
+ group by c.customer_id , m.product_name
+ 
+ -- 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+ 
+ select top 1 product_id , COUNT(product_id) from sales
+ group by product_id 
+ order by product_id desc 
+ 
+ -- 5. Which item was the most popular for each customer?
+ 
+ with cte as (
+ select s.customer_id, m.product_name , COUNT(m.product_id) as fav_items ,
+ DENSE_RANK() over (partition by customer_id order by count(m.product_id)) as dr 
+ from menu m  join sales s on m.product_id = s.product_id
+GROUP BY s.customer_id, m.product_name
+ )
+ select * from cte 
+ where dr=1
+
+ -- 6. Which item was purchased first by the customer after they became a member?
+ 
+ select * from sales
+  select * from menu 
+  select * from members
+
+  with max_order as (
+  select m.join_date,s.*,ROW_NUMBER()over(partition by s.customer_id order by order_date)  as rn
+  from members m left join sales s on  s.order_date >= m.join_date and s.customer_id=m.customer_id ) 
+  select customer_id,product_id from max_order 
+  where rn = 1	
+
+  -- 7. Which item was purchased just before the customer became a member?
+
+  with just_before as (
+  select m.join_date,s.*,dense_rank()over(partition by s.customer_id order by order_date desc)  as rn
+  from members m left join sales s on   s.customer_id=m.customer_id  where s.order_date < m.join_date ) 
+  select customer_id,product_id from just_before 
+  where rn = 1	
+
+  -- 8. What is the total items and amount spent for each member before they became a member?
+
+  with total_items as (
+		select  m.join_date,s.*
+  from members m left join sales s on   s.customer_id=m.customer_id  where s.order_date < m.join_date ) ,
+  rate as (
+  select t.customer_id,   u.product_name, sum(u.price) as amount_spend from total_items t left join menu u on t.product_id=u.product_id 
+  group by t.customer_id, u.product_name)
+
+  select customer_id,COUNT(distinct product_name) as no_of_items ,sum(amount_spend) as total_amount_spend from rate
+  group by customer_id
+
+  -- 9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+  with cte as (
+  select customer_id ,m.product_name, m.price , case when m.product_name = 'sushi' then 2*10*price else 10*price end as reward_point
+  from sales s join  menu m on s.product_id=m.product_id )
+
+  select customer_id , SUM(reward_point) as total_points from cte 
+  group by customer_id
+  
+  -- 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items,
+         --not just sushi - how many points do customer A and B have at the end of January?
+
+   WITH dates_cte AS 
+ (
+ SELECT *, 
+  DATEADD(DAY, 6, join_date) AS valid_date, 
+  EOMONTH('2021-01-31') AS last_date
+ FROM members
+ )
+ /*,
+ rates as (
+ select s.customer_id ,s.order_date, u.product_name, u.price , 10*price as reward_ini
+ from sales s join menu u on s.product_id = u.product_id 
+ )
+ select customer_id , case when order_date 
+ */
+
+ SELECT d.customer_id, s.order_date, d.join_date, 
+ d.valid_date, d.last_date, m.product_name, m.price,
+ SUM(CASE
+  WHEN m.product_name = 'sushi' THEN 2 * 10 * m.price
+  WHEN s.order_date BETWEEN d.join_date AND d.valid_date THEN 2 * 10 * m.price
+  ELSE 10 * m.price
+  END) AS points
+FROM dates_cte AS d
+JOIN sales AS s
+ ON d.customer_id = s.customer_id
+JOIN menu AS m
+ ON s.product_id = m.product_id
+WHERE s.order_date < d.last_date
+GROUP BY d.customer_id, s.order_date, d.join_date, d.valid_date, d.last_date, m.product_name, m.price
+
+
