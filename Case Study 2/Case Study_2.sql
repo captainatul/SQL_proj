@@ -188,17 +188,47 @@ extras = case when extras= 'null' then null else extras end;
 	order by pizzaas desc 
 
 	-- 7.For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+
+	select customer_id,
+	sum(case
+	when (exclusions is NULL or exclusions = '') and (extras is NULL or extras = '') then 1
+	else 0 
+	end) as no_changes,
+
+	sum(case 
+	when (exclusions is not NULL and exclusions != '') or (extras is not NULL and extras != '') then 1 else 0 end) as one_changes
+	from customer_orders c inner join runner_orders r on 
+	r.order_id = c.order_id
+	where r.distance is not null
+	group by c.customer_id;
+
+	
+	--8 How many pizzas were delivered that had both exclusions and extras?
+	
+	select c.customer_id, sum(case when 
+	(exclusions is not null and exclusions != '') and (extras is not null and extras != '') then 1 else 0 
+	end ) as both
+	from customer_orders c join runner_orders r on c.order_id = r.order_id
+	where r.distance is not null 
+	group by c.customer_id
+
+	--9 What was the total volume of pizzas ordered for each hour of the day?
+
+	select COUNT(order_id) as pizzas,
+	DATEPART(HOUR,order_time) as hourss from customer_orders
+	group by DATEPART(HOUR,order_time)
+
+	--10 What was the volume of orders for each day of the week?
+
+	select COUNT(order_id) as pizzas,
+	DATEPART(WEEKDAY,order_time) as week_day from customer_orders
+	group by DATEPART(WEEKDAY,order_time)
+
+
 	
 
 
 
-
-
-
-	select * from customer_orders
-	select * from runner_orders
-
-	
 
 
 
